@@ -88,6 +88,7 @@ homebrew_cask_apps:
   - keka
   - nordvpn
   - openlogi
+  - rew
   - ridibooks
   - safe-exam-browser
   - silicon-labs-vcp-driver

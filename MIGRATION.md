@@ -26,13 +26,10 @@ ansible-playbook main.yml --ask-become-pass
 
 일부만 다시 돌릴 때: `--tags homebrew`, `--tags mas`, `--tags post`
 
-## 3. 수동 설치 앱
+## 3. 제외한 것
 
-교보eBook, 교보도서관, 서울도서관 전자책 뷰어, Series Comic Viewer, CrossEX,
-MACSOOPPackage, REW, SEGGER, DownloadHelper CoApp
-
-## 4. 제외한 것
-
+- 이전 Mac에 있던 쓰지 않는 앱: 교보eBook, 교보도서관, 서울도서관 전자책 뷰어,
+  Series Comic Viewer, CrossEX, MACSOOPPackage, SEGGER, DownloadHelper CoApp
 - npm 전역 패키지: `dkmaker-mcp-rest-api`, `mcp-grocy-api`
 - 쓰지 않는 Homebrew 탭 9개
 - dotfiles 저장소의 Brewfile, uv 설치 (`curl -LsSf https://astral.sh/uv/install.sh | sh`로 직접 설치)
