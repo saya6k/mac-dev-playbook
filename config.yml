@@ -1,0 +1,107 @@
+---
+# Overrides for default.config.yml. Generated from the packages installed on
+# the previous Mac (2026-11-03).
+
+# upstream dotfiles role expects files at the repo root; saya6k/dotfiles keeps
+# them under config/, so tasks/post/dotfiles.yml links them instead.
+configure_dotfiles: false
+configure_terminal: false
+configure_osx: false
+configure_dock: false
+
+# Used by tasks/post/dotfiles.yml.
+dotfiles_repo_url: https://github.com/saya6k/dotfiles.git
+dotfiles_dir: "{{ ansible_env.HOME }}/Projects/dotfiles"
+git_user_name: Lee
+git_user_email: 63517312+saya6k@users.noreply.github.com
+
+homebrew_taps:
+  - filosottile/musl-cross
+  - symbioose/tap
+
+homebrew_installed_packages:
+  - adb-enhanced
+  - automake
+  - bash
+  - bat
+  - cmake
+  - container
+  - coreutils
+  - dotnet
+  - dtc
+  - e2fsprogs
+  - epubcheck
+  - eza
+  - fastfetch
+  - fd
+  - ffmpeg
+  - filosottile/musl-cross/musl-cross
+  - fzf
+  - gdb
+  - gh
+  - git
+  - git-filter-repo
+  - hadolint
+  - jadx
+  - libarchive
+  - librsvg
+  - libtool
+  - luajit
+  - luarocks
+  - lzop
+  - mas
+  - openjdk@17
+  - poppler
+  - ppsspp
+  - pre-commit
+  - radare2
+  - sevenzip
+  - shellcheck
+  - sshpass
+  - starship
+  - tree
+  - xdelta
+  - zig
+  - zoxide
+  - zsh
+
+homebrew_cask_apps:
+  - 4k-video-downloader-plus
+  - adguard
+  - aldente
+  - android-commandlinetools
+  - android-platform-tools
+  - battle-net
+  - bitwarden
+  - caffeine
+  - claude-code@latest
+  - symbioose/tap/claude-switcher
+  - discord
+  - element
+  - google-chrome
+  - grandperspective
+  - hiddenbar
+  - home-assistant
+  - hop
+  - iina
+  - karabiner-elements
+  - keka
+  - nordvpn
+  - openlogi
+  - ridibooks
+  - safe-exam-browser
+  - silicon-labs-vcp-driver
+  - spotify
+  - stats
+  - steam
+  - telegram
+  - visual-studio-code
+  - wifiman
+
+# Requires being signed in to the App Store first.
+mas_installed_apps:
+  - id: 869223134
+    name: KakaoTalk
+
+post_provision_tasks:
+  - "{{ playbook_dir }}/tasks/post/*.yml"

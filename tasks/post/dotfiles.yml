@@ -1,0 +1,73 @@
+---
+# Mirrors the linking done by saya6k/dotfiles install.sh (minus Brewfile and uv,
+# since packages are managed by this playbook).
+
+- name: Clone dotfiles repository.
+  ansible.builtin.git:
+    repo: "{{ dotfiles_repo_url }}"
+    dest: "{{ dotfiles_dir }}"
+    version: main
+    update: false
+
+- name: Install Oh My Zsh.
+  ansible.builtin.shell: >-
+    curl -fsSL https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master/tools/install.sh | sh
+  args:
+    creates: "{{ ansible_env.HOME }}/.oh-my-zsh"
+  environment:
+    CHSH: "no"
+    RUNZSH: "no"
+    KEEP_ZSHRC: "yes"
+
+- name: Create ~/.gitconfig.local with git identity.
+  ansible.builtin.copy:
+    dest: "{{ ansible_env.HOME }}/.gitconfig.local"
+    content: |
+      [user]
+      	name = {{ git_user_name }}
+      	email = {{ git_user_email }}
+    force: false
+    mode: "0644"
+
+- name: Ensure agent config directories exist.
+  ansible.builtin.file:
+    path: "{{ ansible_env.HOME }}/{{ item }}"
+    state: directory
+    mode: "0755"
+  loop:
+    - .claude
+    - .config/opencode
+
+- name: Define dotfile links.
+  ansible.builtin.set_fact:
+    dotfile_links:
+      - { src: config/.gitconfig, dest: .gitconfig }
+      - { src: config/.gitignore, dest: .gitignore }
+      - { src: config/.zshrc, dest: .zshrc }
+      - { src: config/.zshrc-local.macos, dest: .zshrc-local }
+      - { src: config/AGENTS.md, dest: .claude/CLAUDE.md }
+      - { src: config/AGENTS.md, dest: .config/opencode/AGENTS.md }
+      - { src: config/opencode.json, dest: .config/opencode/opencode.json }
+
+- name: Check existing dotfiles.
+  ansible.builtin.stat:
+    path: "{{ ansible_env.HOME }}/{{ item.dest }}"
+    follow: false
+  loop: "{{ dotfile_links }}"
+  register: dotfile_stat
+
+- name: Back up real files that would be replaced (-> .bak).
+  ansible.builtin.command:
+    cmd: mv "{{ ansible_env.HOME }}/{{ item.item.dest }}" "{{ ansible_env.HOME }}/{{ item.item.dest }}.bak"
+  loop: "{{ dotfile_stat.results }}"
+  loop_control:
+    label: "{{ item.item.dest }}"
+  when: item.stat.exists and not item.stat.islnk
+
+- name: Link dotfiles into home directory.
+  ansible.builtin.file:
+    src: "{{ dotfiles_dir }}/{{ item.src }}"
+    dest: "{{ ansible_env.HOME }}/{{ item.dest }}"
+    state: link
+    force: true
+  loop: "{{ dotfile_links }}"
