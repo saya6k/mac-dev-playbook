@@ -9,10 +9,21 @@
     version: main
     update: false
 
+- name: Check for Oh My Zsh.
+  ansible.builtin.stat:
+    path: "{{ ansible_env.HOME }}/.oh-my-zsh"
+  register: ohmyzsh_stat
+
+- name: Download Oh My Zsh installer.
+  ansible.builtin.get_url:
+    url: https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master/tools/install.sh
+    dest: /tmp/ohmyzsh-install.sh
+    mode: "0755"
+  when: not ohmyzsh_stat.stat.exists
+
 - name: Install Oh My Zsh.
-  ansible.builtin.shell: >-
-    curl -fsSL https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master/tools/install.sh | sh
-  args:
+  ansible.builtin.command:
+    cmd: sh /tmp/ohmyzsh-install.sh
     creates: "{{ ansible_env.HOME }}/.oh-my-zsh"
   environment:
     CHSH: "no"
@@ -41,13 +52,13 @@
 - name: Define dotfile links.
   ansible.builtin.set_fact:
     dotfile_links:
-      - { src: config/.gitconfig, dest: .gitconfig }
-      - { src: config/.gitignore, dest: .gitignore }
-      - { src: config/.zshrc, dest: .zshrc }
-      - { src: config/.zshrc-local.macos, dest: .zshrc-local }
-      - { src: config/AGENTS.md, dest: .claude/CLAUDE.md }
-      - { src: config/AGENTS.md, dest: .config/opencode/AGENTS.md }
-      - { src: config/opencode.json, dest: .config/opencode/opencode.json }
+      - {src: config/.gitconfig, dest: .gitconfig}
+      - {src: config/.gitignore, dest: .gitignore}
+      - {src: config/.zshrc, dest: .zshrc}
+      - {src: config/.zshrc-local.macos, dest: .zshrc-local}
+      - {src: config/AGENTS.md, dest: .claude/CLAUDE.md}
+      - {src: config/AGENTS.md, dest: .config/opencode/AGENTS.md}
+      - {src: config/opencode.json, dest: .config/opencode/opencode.json}
 
 - name: Check existing dotfiles.
   ansible.builtin.stat:
