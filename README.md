@@ -1,166 +1,91 @@
-<img src="https://raw.githubusercontent.com/geerlingguy/mac-dev-playbook/master/files/Mac-Dev-Playbook-Logo.png" width="250" height="156" alt="Mac Dev Playbook Logo" />
-
-# Mac Development Ansible Playbook
+# Mac Dev Playbook
 
 [![CI][badge-gh-actions]][link-gh-actions]
 
-This playbook installs and configures most of the software I use on my Mac for web and software development. Some things in macOS are slightly difficult to automate, so I still have a few manual installation steps, but at least it's all documented here.
+내 Mac에 필요한 패키지, 앱, dotfiles를 한 번에 설치하는 Ansible playbook.
+[geerlingguy/mac-dev-playbook](https://github.com/geerlingguy/mac-dev-playbook)을
+가져와 `config.yml`로 내 환경에 맞게 덮어썼다.
 
-## Installation
+새 MacBook으로 옮길 때의 전체 절차는 [MIGRATION.md](MIGRATION.md)에 있다.
 
-  1. Ensure Apple's command line tools are installed (`xcode-select --install` to launch the installer).
-  2. [Install Ansible](https://docs.ansible.com/ansible/latest/installation_guide/index.html):
+## 빠른 시작
 
-     1. Run the following command to add Python 3 to your $PATH: `export PATH="$HOME/Library/Python/3.9/bin:/opt/homebrew/bin:$PATH"`
-     2. Upgrade Pip: `sudo pip3 install --upgrade pip`
-     3. Install Ansible: `pip3 install ansible`
+```bash
+xcode-select --install
+pip3 install --user ansible
+export PATH="$HOME/Library/Python/3.9/bin:$PATH"
 
-  3. Clone or download this repository to your local drive.
-  4. Run `ansible-galaxy install -r requirements.yml` inside this directory to install required Ansible roles.
-  5. Run `ansible-playbook main.yml --ask-become-pass` inside this directory. Enter your macOS account password when prompted for the 'BECOME' password.
-
-> Note: If some Homebrew commands fail, you might need to agree to Xcode's license or fix some other Brew issue. Run `brew doctor` to see if this is the case.
-
-### Use with a remote Mac
-
-You can use this playbook to manage other Macs as well; the playbook doesn't even need to be run from a Mac at all! If you want to manage a remote Mac, either another Mac on your network, or a hosted Mac like the ones from [MacStadium](https://www.macstadium.com), you just need to make sure you can connect to it with SSH:
-
-  1. (On the Mac you want to connect to:) Go to System Settings > Sharing.
-  2. Enable 'Remote Login'.
-
-> You can also enable remote login on the command line:
->
->     sudo systemsetup -setremotelogin on
-
-Then edit the `inventory` file in this repository and change the line that starts with `127.0.0.1` to:
-
-```
-[ip address or hostname of mac]  ansible_user=[mac ssh username]
+git clone https://github.com/saya6k/mac-dev-playbook.git ~/Projects/mac-dev-playbook
+cd ~/Projects/mac-dev-playbook
+ansible-galaxy install -r requirements.yml
+ansible-playbook main.yml --ask-become-pass
 ```
 
-If you need to supply an SSH password (if you don't use SSH keys), make sure to pass the `--ask-pass` parameter to the `ansible-playbook` command.
+App Store 앱(카카오톡)을 설치하려면 실행 전에 App Store에 로그인해 둔다.
+Homebrew 명령이 실패하면 `brew doctor`로 원인을 확인한다.
 
-### Running a specific set of tagged tasks
+## 구성
 
-You can filter which part of the provisioning process to run by specifying a set of tags using `ansible-playbook`'s `--tags` flag. The tags available are `dotfiles`, `homebrew`, `mas`, `extra-packages` and `osx`.
+| 파일 | 내용 |
+|---|---|
+| `default.config.yml` | upstream 기본값. 직접 고치지 않는다. |
+| `config.yml` | 내 설정. Homebrew 패키지·cask·탭, App Store 앱, dotfiles 저장소, git 사용자 정보 |
+| `tasks/post/dotfiles.yml` | [saya6k/dotfiles](https://github.com/saya6k/dotfiles)를 클론해 `config/` 파일을 `~`에 심링크로 연결하고 Oh My Zsh를 설치한다 |
+| `MIGRATION.md` | 새 Mac 이전 절차, 따로 옮길 파일, 수동 설치 앱 목록 |
 
-    ansible-playbook main.yml -K --tags "dotfiles,homebrew"
+upstream 기능 중 아래는 꺼 두었다 (`config.yml`).
 
-## Overriding Defaults
+- `configure_dotfiles`: upstream 역할은 저장소 루트의 파일만 연결하는데, 내 dotfiles는 `config/` 아래에 있어서 `tasks/post/dotfiles.yml`로 대신한다.
+- `configure_osx`, `configure_terminal`: upstream 작성자 개인 설정이다.
+- `configure_dock`: Dock은 손으로 정리한다.
 
-Not everyone's development environment and preferred software configuration is the same.
+### dotfiles 연결
 
-You can override any of the defaults configured in `default.config.yml` by creating a `config.yml` file and setting the overrides in that file. For example, you can customize the installed packages and apps with something like:
+| 저장소 파일 | 연결 위치 |
+|---|---|
+| `config/.gitconfig` | `~/.gitconfig` |
+| `config/.gitignore` | `~/.gitignore` |
+| `config/.zshrc` | `~/.zshrc` |
+| `config/.zshrc-local.macos` | `~/.zshrc-local` |
+| `config/AGENTS.md` | `~/.claude/CLAUDE.md`, `~/.config/opencode/AGENTS.md` |
+| `config/opencode.json` | `~/.config/opencode/opencode.json` |
 
-```yaml
-homebrew_installed_packages:
-  - git
-  - go
+그 자리에 심링크가 아닌 일반 파일이 있으면 `.bak`으로 옮긴 뒤 연결한다.
+git 이름과 이메일은 `config.yml`의 값으로 `~/.gitconfig.local`에 쓴다 (이미 있으면 그대로 둔다).
 
-mas_installed_apps:
-  - { id: 443987910, name: "1Password" }
-  - { id: 498486288, name: "Quick Resizer" }
-  - { id: 557168941, name: "Tweetbot" }
-  - { id: 497799835, name: "Xcode" }
+## 패키지 추가·제거
 
-composer_packages:
-  - name: hirak/prestissimo
-  - name: drush/drush
-    version: '^8.1'
+`config.yml`의 목록을 고친 뒤 해당 태그만 다시 실행한다.
 
-gem_packages:
-  - name: bundler
-    state: latest
-
-npm_packages:
-  - name: webpack
-
-pip_packages:
-  - name: mkdocs
-
-configure_dock: true
-dockitems_remove:
-  - Launchpad
-  - TV
-dockitems_persist:
-  - name: "Sublime Text"
-    path: "/Applications/Sublime Text.app/"
-    pos: 5
+```bash
+ansible-playbook main.yml -K --tags homebrew   # formula, cask, 탭
+ansible-playbook main.yml -K --tags mas        # App Store 앱
+ansible-playbook main.yml -K --tags post       # dotfiles
 ```
 
-Any variable can be overridden in `config.yml`; see the supporting roles' documentation for a complete list of available variables.
+App Store 앱 ID는 `mas list` 또는 `mas search <이름>`으로 찾는다.
 
-## Included Applications / Configuration (Default)
+## upstream 변경 반영
 
-Applications (installed with Homebrew Cask):
+```bash
+git fetch upstream
+git merge upstream/master
+```
 
-  - [ChromeDriver](https://sites.google.com/chromium.org/driver/)
-  - [Docker](https://www.docker.com/)
-  - [Dropbox](https://www.dropbox.com/)
-  - [Firefox](https://www.mozilla.org/en-US/firefox/new/)
-  - [Google Chrome](https://www.google.com/chrome/)
-  - [Handbrake](https://handbrake.fr/)
-  - [Homebrew](http://brew.sh/)
-  - [LICEcap](http://www.cockos.com/licecap/)
-  - [nvALT](http://brettterpstra.com/projects/nvalt/)
-  - [Sequel Ace](https://sequel-ace.com) (MySQL client)
-  - [Slack](https://slack.com/)
-  - [Sublime Text](https://www.sublimetext.com/)
-  - [Transmit](https://panic.com/transmit/) (S/FTP client)
+## 테스트
 
-Packages (installed with Homebrew):
+`check` 모드로 실제 변경 없이 결과를 미리 볼 수 있다.
 
-  - autoconf
-  - bash-completion
-  - doxygen
-  - gettext
-  - gifsicle
-  - git
-  - gh
-  - go
-  - gpg
-  - httpie
-  - iperf
-  - libevent
-  - sqlite
-  - nmap
-  - node
-  - nvm
-  - php
-  - ssh-copy-id
-  - readline
-  - openssl
-  - pv
-  - wget
-  - wrk
-  - zsh-history-substring-search
+```bash
+ansible-playbook main.yml -K --check --diff --tags post
+```
 
-My [dotfiles](https://github.com/geerlingguy/dotfiles) are also installed into the current user's home directory, including the `.osx` dotfile for configuring many aspects of macOS for better performance and ease of use. You can disable dotfiles management by setting `configure_dotfiles: no` in your configuration.
+## 출처
 
-Finally, there are a few other preferences and settings added on for various apps and services.
+[Jeff Geerling](https://www.jeffgeerling.com/)의
+[mac-dev-playbook](https://github.com/geerlingguy/mac-dev-playbook)을 바탕으로 했다.
+라이선스는 [LICENSE](LICENSE) (MIT). upstream 작성자의 설치 기록은
+[full-mac-setup.md](full-mac-setup.md)에 그대로 두었다.
 
-## Full / From-scratch setup guide
-
-Since I've used this playbook to set up something like 20 different Macs, I decided to write up a full 100% from-scratch install for my own reference (everyone's particular install will be slightly different).
-
-You can see my full from-scratch setup document here: [full-mac-setup.md](full-mac-setup.md).
-
-## Testing the Playbook
-
-Many people have asked me if I often wipe my entire workstation and start from scratch just to test changes to the playbook. Nope! This project is [continuously tested on GitHub Actions' macOS infrastructure](https://github.com/geerlingguy/mac-dev-playbook/actions?query=workflow%3ACI).
-
-You can also run macOS itself inside a VM, for at least some of the required testing (App Store apps and some proprietary software might not install properly). I currently recommend:
-
-  - [UTM](https://mac.getutm.app)
-  - [Tart](https://github.com/cirruslabs/tart)
-
-## Ansible for DevOps
-
-Check out [Ansible for DevOps](https://www.ansiblefordevops.com/), which teaches you how to automate almost anything with Ansible.
-
-## Author
-
-This project was created by [Jeff Geerling](https://www.jeffgeerling.com/) (originally inspired by [MWGriffin/ansible-playbooks](https://github.com/MWGriffin/ansible-playbooks)).
-
-[badge-gh-actions]: https://github.com/geerlingguy/mac-dev-playbook/actions/workflows/ci.yml/badge.svg
-[link-gh-actions]: https://github.com/geerlingguy/mac-dev-playbook/actions/workflows/ci.yml
+[badge-gh-actions]: https://github.com/saya6k/mac-dev-playbook/actions/workflows/ci.yml/badge.svg
+[link-gh-actions]: https://github.com/saya6k/mac-dev-playbook/actions/workflows/ci.yml
